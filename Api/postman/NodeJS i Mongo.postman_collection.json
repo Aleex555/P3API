@@ -1,0 +1,181 @@
+{
+	"info": {
+		"_postman_id": "0065b53f-4faf-4ed0-b031-603a1911a1a4",
+		"name": "NodeJS i Mongo",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "32800475"
+	},
+	"item": [
+		{
+			"name": "/api/health",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Estat de la resposta és 200 OK\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"El cos de la resposta té l'estat 'OK'\", function () {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData.status).to.eql(\"OK\");\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"health"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/api/users",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Estat de la resposta és 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Comprova estructura de la resposta\", function () {\r",
+							"    let actualUsers = pm.response.json();\r",
+							"    pm.expect(actualUsers).to.be.an('array');\r",
+							"\r",
+							"    // Comprova si el primer usuari té les propietats esperades\r",
+							"    pm.expect(actualUsers[0]).to.have.property('_id');\r",
+							"    pm.expect(actualUsers[0]).to.have.property('id');\r",
+							"    pm.expect(actualUsers[0]).to.have.property('displayName');\r",
+							"    pm.expect(actualUsers[0]).to.have.property('reputation');\r",
+							"    pm.expect(actualUsers[0]).to.have.property('creationDate');\r",
+							"    pm.expect(actualUsers[0]).to.have.property('location');\r",
+							"    pm.expect(actualUsers[0]).to.have.property('aboutMe');\r",
+							"    pm.expect(actualUsers[0]).to.have.property('__v');\r",
+							"\r",
+							"    // Afegir més comprovacions segons necessari\r",
+							"});\r",
+							"\r",
+							"// Opcional: Comprova valors específics per a la primera entrada\r",
+							"pm.test(\"Comprova valors específics per a l'usuari\", function () {\r",
+							"    let actualUser = pm.response.json()[0];\r",
+							"    \r",
+							"    pm.expect(actualUser.displayName).to.eql(\"murgatroid99\");\r",
+							"    // Afegir més comprovacions de valors específics segons necessari\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/users",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/api/events",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Estat de la resposta és 201 Created\", function () {\r",
+							"    pm.response.to.have.status(201);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Comprova estructura de la resposta\", function () {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData.name).to.eql(\"Event Name\");\r",
+							"    pm.expect(jsonData.date).to.eql(\"2023-04-05T09:00:00.000Z\");\r",
+							"    pm.expect(jsonData.description).to.eql(\"Event Description\");\r",
+							"    pm.expect(jsonData).to.have.property(\"_id\");\r",
+							"    pm.expect(jsonData).to.have.property(\"__v\");\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"name\":\"Event Name\",\"date\":\"2023-04-05T09:00:00Z\",\"description\":\"Event Description\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/events",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"events"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://127.0.0.1:3000",
+			"type": "string"
+		}
+	]
+}

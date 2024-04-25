@@ -1,0 +1,36 @@
+{
+  "name": "dam2-pj03-nodejs-base",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/server.js",
+  "scripts": {
+    "clean": "rimraf node_modules dist",
+    "build": "npm run test",
+    "start": "node src/server.js",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jpala4-ieti/DAM2-MP06-UF04-NodeJS-Base.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jpala4-ieti/DAM2-MP06-UF04-NodeJS-Base/issues"
+  },
+  "homepage": "https://github.com/jpala4-ieti/DAM2-MP06-UF04-NodeJS-Base#readme",
+  "dependencies": {
+    "adm-zip": "^0.5.12",
+    "express": "^4.19.2",
+    "fast-xml-parser": "^4.3.6",
+    "mongoose": "^8.3.2",
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.7.5",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "rimraf": "^5.0.5",
+    "supertest": "^6.3.4"
+  }
+}

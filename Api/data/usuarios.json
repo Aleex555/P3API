@@ -1,0 +1,10 @@
+{
+    "uuid": "ASDF097A9FSDHLUOIPFADA709870AFD",
+    "nickname": "Usuari1",
+    "email": "usuari1@example.com",
+    "phone_number": "+34612345678",
+    "api_key": "abc123xyz456",
+    "avatar": "url_a_imatge",
+    "historial_partides": ["id_partida1", "id_partida2"]
+  }
+  

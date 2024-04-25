@@ -1,0 +1,31 @@
+{
+    "_id": "<UUID_de_la_partida>", 
+    "nombrePartida": "Desafío de Letras", 
+    "fechaInicio": "ISODate('2024-04-15T20:00:00Z')",
+    "fechaFin": "ISODate('2024-04-15T21:00:00Z')",
+    "tipo": "<tipo_de_juego>",  
+    "letrasDelRosco": [
+      {"letra": "A"},
+      {"letra": "B"}
+    ],
+    "jugadores": [
+      {
+        "uuidJugador": "<UUID_del_jugador_1>",
+        "nickname": "nicknameJugador1",
+        "puntuacionTotal": 120,
+        "palabrasPuntuadas": [
+          {"palabra": "ancla", "puntuacion": 10},
+          {"palabra": "barco", "puntuacion": 0}
+        ]
+      },
+      {
+        "uuidJugador": "<UUID_del_jugador_2>",
+        "nickname": "nicknameJugador2",
+        "puntuacionTotal": 150,
+        "palabrasPuntuadas": [
+          {"palabra": "árbol", "puntuacion": 20},
+          {"palabra": "búho", "puntuacion": 15}
+        ]
+      }
+    ]
+  }

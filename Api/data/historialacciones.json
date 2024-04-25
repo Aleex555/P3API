@@ -1,0 +1,12 @@
+{
+    "_id": "<UUID_de_la_accion>",  
+    "tipoAccion": "<tipo_de_accion>", 
+    "uuidJugador": "<UUID_del_jugador>", 
+    "idPartida": "<UUID_de_la_partida>", 
+    "tiempoAccion": "ISODate('2024-04-15T20:10:00Z')", 
+    "palabraPuntuacion": {
+      "palabra": "<palabra_respondida>", 
+      "puntuacion": "<puntuacion_asignada>"  
+    }
+  }
+  

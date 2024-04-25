@@ -1,0 +1,26 @@
+version: '3.1'
+services:
+  mongo:
+    image: mongo:latest
+    container_name: mongo-ams2-pj03
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: passpj03
+    volumes:
+      - mongo-data:/data/db-pj03
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express-mongo-ams2-pj03
+    depends_on:
+      - mongo
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: passpj03
+      ME_CONFIG_MONGODB_URL: "mongodb://root:passpj03@mongo-ams2-pj03:27017/"
+volumes:
+  mongo-data:

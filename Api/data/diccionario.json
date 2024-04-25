@@ -1,0 +1,7 @@
+{
+    "_id": "<UUID_unico_para_cada_palabra>",
+    "idioma": "<idioma_de_la_palabra>",  
+    "palabra": "<palabra_almacenada>",  
+    "vecesUtilizada": "<numero_de_veces_que_se_uso>"  
+  }
+  
