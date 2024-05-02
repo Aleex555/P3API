@@ -1,12 +1,17 @@
 const app = require('./app');
 const http = require('http');
 const { Server } = require('socket.io');
+const axios = require('axios');
+let letras = null;
+let partidaId = null;
+let cont = 0;
+
 
 const server = http.createServer(app);
 const io = new Server(server);
 const valorsLletres = {
   'a': 1, 'b': 3, 'c': 3, 'd': 2, 'e': 1, 'f': 4, 'g': 2, 'h': 4, 'i': 1,
-  'j': 8, 'k': 5, 'l': 1, 'm': 3, 'n': 1, 'ñ': 8, 'o': 1, 'p': 3, 'q': 8,
+  'j': 8, 'k': 5, 'l': 1, 'm': 3, 'n': 1, 'o': 1, 'p': 3, 'q': 8,
   'r': 1, 's': 1, 't': 1, 'u': 1, 'v': 4, 'w': 4, 'x': 8, 'y': 4, 'z': 10
 };
 
@@ -17,6 +22,7 @@ class Joc {
     this.properInici = Date.now() + this.partidaDuracio;
     this.enPartida = false;
     this.ciclarJoc();
+    this.iniciarPartida();
   }
 
   ciclarJoc() {
@@ -24,12 +30,50 @@ class Joc {
       this.enPartida = !this.enPartida;
       const nextDuration = this.enPartida ? this.partidaDuracio : this.pausaDuracio;
       this.properInici = Date.now() + nextDuration;
-      if (this.enPartida) {
-        io.emit('PARTIDA_INICIADA', { message: '\n¡Una nueva partida ha comenzado!', enPartida: this.enPartida });
+      if(this.enPartida){
+        console.log("\nPARTIDA INICIADA\n");
+        io.emit('PARTIDA_INICIADA', { message: '\n¡Una nueva partida ha comenzado!', enPartida: this.enPartida ,letras : letras});
+
+      }else if (!this.enPartida){
+        this.actualizarFechaFinPartida(partidaId);
+        this.iniciarPartida();
       }
       this.ciclarJoc();
     }, this.enPartida ? this.partidaDuracio : this.pausaDuracio);
   }
+
+  async iniciarPartida() {
+    try {
+      letras = this.generarLetrasAleatorias();
+      const response = await axios.post('http://localhost:3000/api/games', {
+        letrasDelRosco: letras
+      });
+      console.log('Partida creada:', response.data);
+      partidaId = response.data._id;
+      return partidaId;
+    } catch (error) {
+      console.error('Error al crear la partida:', error);
+    }
+  }
+
+  async actualizarFechaFinPartida(partidaId) {
+    const url = `http://localhost:3000/api/games/${partidaId}/finish`;
+  
+    try {
+      const response = await axios.patch(url);
+      console.log('Partida actualizada con fecha de finalización:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error al actualizar la fecha de finalización de la partida:', error);
+      return null;
+    }
+  }
+
+  generarLetrasAleatorias() {
+    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J','L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V','X', 'Y', 'Z'];
+    return letters.sort(() => 0.5 - Math.random()).slice(0, 7).map(letra => ({ letra }));
+  }
+
 
   consultaTempsRestant() {
     const tempsRestant = this.properInici - Date.now();
@@ -50,10 +94,13 @@ function calcularPuntuacio(paraula) {
   return puntuacio;
 }
 
-const joc = new Joc(60000, 60000);
+const joc = new Joc(10000, 40000);
 
 io.on('connection', (socket) => {
   console.log('Usuari connectat');
+
+  const respostaInmediata = joc.consultaTempsRestant();
+  socket.emit('TEMPS_PER_INICI', respostaInmediata);
   
   const intervalId = setInterval(() => {
     const resposta = joc.consultaTempsRestant();
@@ -65,11 +112,16 @@ io.on('connection', (socket) => {
     socket.emit('TEMPS_PER_INICI', resposta);
   });
 
-  socket.on('ALTA', (data) => {
-
-    console.log(`Petició d'alta rebuda amb dades: ${data}`);
-    socket.emit('ALTA_CONFIRMADA', {message: 'Alta processada correctament', data });
+  socket.on('ALTA', async (data) => {
+    if (!joc.enPartida) {  
+      const result = await unirJugadorAPartida(data, partidaId);  // Usa partidaId directamente
+      socket.emit('ALTA_CONFIRMADA', result);
+    } else {
+      socket.emit('ALTA_CONFIRMADA', { message: 'La partida ya ha empezado'});
+    }
   });
+  
+
 
   socket.on('PARAULA', (data) => {
     if (joc.enPartida ){
@@ -97,6 +149,38 @@ io.on('connection', (socket) => {
     clearInterval(intervalId);
   });
 });
+
+async function unirJugadorAPartida(data, partidaId) {
+  try {
+      // Verifica que la data incluya la API key y el ID de la partida
+      if (!data.apiKey) {
+          console.error('API key no proporcionada');
+          return { message: 'API key no proporcionada' };
+      }
+      if (!partidaId) {
+          console.error('ID de la partida no proporcionado');
+          return { message: 'ID de la partida no proporcionado' };
+      }
+
+      // Configura la URL del endpoint dinámicamente con el ID de la partida
+      const url = `http://localhost:3000/api/games/${partidaId}/join`;  // Usa el parámetro `id` aquí
+
+      // Configura las opciones para la solicitud de Axios
+      const config = {
+          headers: {
+              'x-api-key': data.apiKey // Usa la API key proporcionada por el jugador
+          }
+      };
+
+      const response = await axios.post(url, {}, config);
+      console.log('Jugador unido a la partida:', response.data);
+      return { message: 'Jugador unido a la partida correctamente', data: response.data };
+  } catch (error) {
+      console.error('Error al unir jugador a la partida:', error);
+      return { message: 'Error al unir jugador a la partida', error: error.message };
+  }
+}
+
 
 const port = process.env.PORT || 3000;
 server.listen(port, () => console.log(`Escoltant en el port ${port}...`));

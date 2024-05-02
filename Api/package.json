@@ -21,6 +21,7 @@
   "homepage": "https://github.com/jpala4-ieti/DAM2-MP06-UF04-NodeJS-Base#readme",
   "dependencies": {
     "adm-zip": "^0.5.12",
+    "axios": "^1.6.8",
     "express": "^4.19.2",
     "fast-xml-parser": "^4.3.6",
     "mongoose": "^8.3.2",

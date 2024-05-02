@@ -37,6 +37,9 @@ socket.on('Puntuacion', (data) => {
 
 socket.on('PARTIDA_INICIADA', (data) => {
   console.log(data.message);
+  const soloLetras = data.letras.map(item => item.letra);
+  console.log(soloLetras); 
+  
   mostrarMenu();
 });
 
@@ -81,12 +84,10 @@ function mostrarMenu() {
 }
 
 function altaAPartida() {
-  rl.question('Introdueix el teu nickname: ', (nickname) => {
     rl.question('Introdueix la teva API_KEY: ', (apiKey) => {
-      socket.emit('ALTA', `ALTA=${nickname};API_KEY=${apiKey}`);
+      socket.emit('ALTA', { apiKey: apiKey });
     });
-  });
-}
+  };
 
 function enviarParaula() {
   rl.question('Introdueix la paraula que vols enviar: ', (paraula) => {
