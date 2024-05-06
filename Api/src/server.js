@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const axios = require('axios');
 let letras = null;
+let letraslista = null;
 let partidaId = null;
 let cont = 0;
 
@@ -32,7 +33,7 @@ class Joc {
       this.properInici = Date.now() + nextDuration;
       if(this.enPartida){
         console.log("\nPARTIDA INICIADA\n");
-        io.emit('PARTIDA_INICIADA', { message: '\n¡Una nueva partida ha comenzado!', enPartida: this.enPartida ,letras : letras});
+        io.emit('PARTIDA_INICIADA', { message: '\n¡Una nueva partida ha comenzado!', enPartida: this.enPartida ,letras : letraslista});
 
       }else if (!this.enPartida){
         this.actualizarFechaFinPartida(partidaId);
@@ -45,7 +46,8 @@ class Joc {
   async iniciarPartida() {
     try {
       letras = this.generarLetrasAleatorias();
-      const response = await axios.post('http://localhost:3000/api/games', {
+      letraslista = letras.map(obj => obj.letra);
+      const response = await axios.post('http://localhost:3002/api/games', {
         letrasDelRosco: letras
       });
       console.log('Partida creada:', response.data);
@@ -57,7 +59,7 @@ class Joc {
   }
 
   async actualizarFechaFinPartida(partidaId) {
-    const url = `http://localhost:3000/api/games/${partidaId}/finish`;
+    const url = `http://localhost:3002/api/games/${partidaId}/finish`;
   
     try {
       const response = await axios.patch(url);
@@ -70,9 +72,13 @@ class Joc {
   }
 
   generarLetrasAleatorias() {
-    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J','L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V','X', 'Y', 'Z'];
-    return letters.sort(() => 0.5 - Math.random()).slice(0, 7).map(letra => ({ letra }));
-  }
+    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'X', 'Y', 'Z'];
+    const numeroLetras = Math.floor(Math.random() * (10 - 6 + 1)) + 6;
+    return letters.sort(() => 0.5 - Math.random()).slice(0, numeroLetras).map(letra => ({ letra }));
+}
+
+
+
 
 
   consultaTempsRestant() {
@@ -94,18 +100,17 @@ function calcularPuntuacio(paraula) {
   return puntuacio;
 }
 
-const joc = new Joc(10000, 40000);
+const joc = new Joc(60000, 60000);
 
 io.on('connection', (socket) => {
   console.log('Usuari connectat');
 
-  const respostaInmediata = joc.consultaTempsRestant();
-  socket.emit('TEMPS_PER_INICI', respostaInmediata);
+  
   
   const intervalId = setInterval(() => {
     const resposta = joc.consultaTempsRestant();
-    socket.emit('TEMPS_PER_INICI', resposta);
-  }, 10000);
+    io.emit('TEMPS_PER_INICI', resposta);
+  }, 1000);
 
   socket.on('TEMPS_PER_INICI', () => {
     const resposta = joc.consultaTempsRestant();
@@ -114,7 +119,7 @@ io.on('connection', (socket) => {
 
   socket.on('ALTA', async (data) => {
     if (!joc.enPartida) {  
-      const result = await unirJugadorAPartida(data, partidaId);  // Usa partidaId directamente
+      const result = await unirJugadorAPartida(data, partidaId);
       socket.emit('ALTA_CONFIRMADA', result);
     } else {
       socket.emit('ALTA_CONFIRMADA', { message: 'La partida ya ha empezado'});
@@ -123,17 +128,40 @@ io.on('connection', (socket) => {
   
 
 
-  socket.on('PARAULA', (data) => {
-    if (joc.enPartida ){
-      console.log(`Palabra: ${data.paraula}, API_KEY: ${data.API_KEY}`);
-      if (data.paraula) {
-          let puntuacion = calcularPuntuacio(data.paraula);
-          socket.emit('Puntuacion', { message: `Puntuación de la palabra '${data.paraula}': ${puntuacion}`, data });
+  socket.on('PARAULA', async (data) => {
+    if (joc.enPartida) {
+      console.log(`Palabra: ${data.palabra}, API_KEY: ${data.apiKey}`);
+
+      if (data.palabra && data.apiKey) {
+        const result = await mirarPalabra(data, partidaId);
+      if (result.exists) {
+        let puntuacion = calcularPuntuacio(data.palabra);
+        io.emit('Puntuacion', {
+          message: `Puntuación de la palabra '${data.palabra}': ${puntuacion}`,
+          palabra: data.palabra,
+          puntuacion: puntuacion,
+          existe: true
+      });
+        const updateResult = await actualizarPuntuacionPalabra(data.apiKey, partidaId, data.palabra, puntuacion);
+        if (updateResult.success) {
+          console.log(`Puntuación de la palabra '${data.palabra}': ${puntuacion} actualizada correctamente en la base de datos.`);
+        } else {
+          console.log(`Error al actualizar la puntuación de la palabra '${data.palabra}': ${updateResult.message}`);
+        }
+
+        
+      } else {
+        socket.emit('Puntuacion', {
+            message: result.message,
+            existe: false
+        });
       }
-    }else{
-      socket.emit('Puntuacion',{ message: `No estamos en partida`, data })
+      } else {
+          socket.emit('Puntuacion', { message: "No se proporcionó una palabra válida.", data });
+      }
+    } else {
+      socket.emit('Puntuacion', { message: `No estamos en partida`, data });
     }
-    
 });
 
   socket.onAny((event, ...args) => {
@@ -163,7 +191,7 @@ async function unirJugadorAPartida(data, partidaId) {
       }
 
       // Configura la URL del endpoint dinámicamente con el ID de la partida
-      const url = `http://localhost:3000/api/games/${partidaId}/join`;  // Usa el parámetro `id` aquí
+      const url = `http://localhost:3002/api/games/${partidaId}/join`;  // Usa el parámetro `id` aquí
 
       // Configura las opciones para la solicitud de Axios
       const config = {
@@ -182,5 +210,56 @@ async function unirJugadorAPartida(data, partidaId) {
 }
 
 
-const port = process.env.PORT || 3000;
+async function mirarPalabra(data, partidaId) {
+  try {
+    // Verifica que la data incluya la API key y el ID de la partida
+    if (!data.apiKey) {
+        console.error('API key no proporcionada');
+        return { message: 'API key no proporcionada' };
+    }
+    if (!partidaId) {
+        console.error('ID de la partida no proporcionado');
+        return { message: 'ID de la partida no proporcionado' };
+    }
+
+    const url = `http://localhost:3002/api/words/check`;
+    const response = await axios.post(url, {
+      palabra: data.palabra,
+      idioma: "catalan",
+      api_key: data.apiKey,
+      idPartida: partidaId
+    });
+
+    if (response.data && response.data.exists) {
+      return { exists: true, message: 'Palabra encontrada y contabilizada' };
+    } else {
+      return { exists: false, message: 'Palabra no encontrada en el diccionario' };
+    }
+  } catch (error) {
+    console.error('Error al verificar la palabra:', error);
+    return { exists: false, message: 'Error al verificar la palabra', error: error.message };
+  }
+}
+
+async function actualizarPuntuacionPalabra(apiKey, gameId, palabra, puntuacion) {
+  try {
+    const url = 'http://localhost:3002/api/update-word-score';
+    const body = {
+      apiKey: apiKey,
+      gameId: gameId,
+      palabra: palabra,
+      puntuacion: puntuacion
+    };
+    const response = await axios.post(url, body);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error('Error al actualizar la puntuación de la palabra:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+
+
+
+const port = process.env.PORT || 3002;
 server.listen(port, () => console.log(`Escoltant en el port ${port}...`));

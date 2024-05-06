@@ -8,7 +8,7 @@ const rl = readline.createInterface({
 });
 
 // Connecta al servidor
-const socket = io('http://127.0.0.1:3000');
+const socket = io('http://127.0.0.1:3002');
 
 socket.on('connect', () => {
   console.log('Connectat al servidor');
@@ -36,10 +36,7 @@ socket.on('Puntuacion', (data) => {
 });
 
 socket.on('PARTIDA_INICIADA', (data) => {
-  console.log(data.message);
-  const soloLetras = data.letras.map(item => item.letra);
-  console.log(soloLetras); 
-  
+  console.log(data.letras);
   mostrarMenu();
 });
 
@@ -92,7 +89,7 @@ function altaAPartida() {
 function enviarParaula() {
   rl.question('Introdueix la paraula que vols enviar: ', (paraula) => {
     rl.question('Introdueix la teva API_KEY: ', (apiKey) => {
-      socket.emit('PARAULA', { paraula: paraula, API_KEY: apiKey });
+      socket.emit('PARAULA', { palabra: paraula, apiKey: apiKey });
     });
   });
 }

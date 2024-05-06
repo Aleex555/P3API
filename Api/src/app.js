@@ -197,36 +197,139 @@ app.post('/api/games/:id/join', async (req, res) => {
   }
 });
 
-// Endpoint para actualizar las palabras puntuadas de un jugador por nickname
-app.post('/api/games/:gameId/player/:nickname/word', async (req, res) => {
+app.post('/api/update-word-score', async (req, res) => {
   try {
-    const wordUpdate = {
-      $push: {
-        "jugadores.$.palabrasPuntuadas": {
-          palabra: req.body.palabra,
-          puntuacion: req.body.puntuacion
+    const { apiKey, gameId, palabra, puntuacion } = req.body;
+
+    if (!apiKey || !gameId || !palabra || puntuacion == null) {
+        return res.status(400).send("Faltan campos necesarios: apiKey, gameId, palabra, o puntuacion.");
+    }
+
+    const user = await User.findOne({ api_key: apiKey });
+    if (!user) {
+        return res.status(401).send("API key inválida o usuario no encontrado.");
+    }
+
+    const updateOperations = {
+        $push: {
+            "jugadores.$.palabrasPuntuadas": {
+                palabra,
+                puntuacion
+            }
+        },
+        $inc: {
+            "jugadores.$.puntuacionTotal": puntuacion // Incrementa la puntuación total
         }
-      }
     };
 
-    // Encuentra la partida y actualiza específicamente al jugador correcto
-    // por nickname en lugar de uuidJugador
     const updatedGame = await Game.findOneAndUpdate(
-      { _id: req.params.gameId, "jugadores.nickname": req.params.nickname },
-      wordUpdate,
-      { new: true }
+        { _id: gameId, "jugadores.uuidJugador": user.uuid },
+        updateOperations,
+        { new: true }
     );
 
     if (!updatedGame) {
-      return res.status(404).send("Juego o jugador no encontrado.");
+        console.log("No se encontró la partida o el jugador para la actualización.");
+        return res.status(404).send("Partida o jugador no encontrado.");
     }
 
+    // Encuentra el nombre de la partida por idPartida
+    const partida = await Game.findById(gameId);
+    if (!partida) {
+      return res.status(404).send("Partida no encontrada.");
+    }
+    const offset = 2 * 60 * 60 * 1000; // 2 horas convertidas a milisegundos
+    const fechaInicio = new Date(new Date().getTime() + offset);
+    // Crea la acción de palabra guardada
+    const newAction = new Action({
+      tipoAccion: 'palabra_guardada',
+      uuidJugador: user.uuid, 
+      idPartida: gameId,
+      nombrePartida: partida.nombrePartida,
+      tiempoAccion: fechaInicio,
+      palabraPuntuacion: {
+        palabra: palabra,
+        puntuacion: puntuacion
+      }
+    });
+
+    await newAction.save();
+
+    console.log("Actualización exitosa:", updatedGame);
     res.status(200).json(updatedGame);
   } catch (error) {
     console.error("Error al actualizar palabras puntuadas:", error);
     res.status(400).json({ message: error.message });
   }
 });
+
+
+app.post('/api/words/check', async (req, res) => {
+  try {
+    const { palabra, idioma, api_key, idPartida } = req.body;
+
+    if (!palabra || !idioma || !api_key || !idPartida) {
+      return res.status(400).send("Es necesario proporcionar la palabra, idioma, api_key y idPartida.");
+    }
+
+    // Encuentra al usuario mediante api_key
+    const user = await User.findOne({ api_key: api_key });
+    if (!user) {
+      return res.status(401).send("Usuario no encontrado o api_key inválida.");
+    }
+
+    // Encuentra el nombre de la partida por idPartida
+    const partida = await Game.findById(idPartida);
+    if (!partida) {
+      return res.status(404).send("Partida no encontrada.");
+    }
+
+    // Busca la palabra en la base de datos
+    const word = await Wordd.findOne({ palabra: palabra, idioma: idioma });
+
+    if (word) {
+      // Si la palabra existe, actualiza el contador de veces utilizadas
+      word.veces_utilizadas += 1;
+      await word.save();
+      return res.status(200).json({
+        exists: true,
+        message: "La palabra existe en el diccionario y la acción ha sido guardada.",
+        palabra: word.palabra,
+        idioma: word.idioma,
+        veces_utilizadas: word.veces_utilizadas
+      });
+    }
+
+    const offset = 2 * 60 * 60 * 1000; // 2 horas convertidas a milisegundos
+    const fechaInicio = new Date(new Date().getTime() + offset);
+    // Crea la acción de palabra inválida
+    const newInvalidAction = new Action({
+      tipoAccion: 'palabra_invalida',
+      uuidJugador: user.uuid,
+      idPartida: idPartida,
+      nombrePartida: partida.nombrePartida,
+      tiempoAccion: fechaInicio,
+      detalleInvalidacion: {
+        palabraIntentada: palabra,
+        razon: 'No existe en el diccionario'
+      }
+    });
+
+    // Guarda la acción en la base de datos
+    await newInvalidAction.save();
+    return res.status(200).json({
+      exists: false,
+      message: "La palabra no existe en el diccionario."
+    });
+
+  } catch (error) {
+    console.error("Error al verificar la palabra:", error);
+    res.status(500).json({ message: "Error del servidor al procesar la solicitud." });
+  }
+});
+
+
+
 
 // Endpoint para actualizar la fecha de finalización de una partida
 app.patch('/api/games/:id/finish', async (req, res) => {
@@ -254,6 +357,8 @@ app.patch('/api/games/:id/finish', async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
+
 
 
 

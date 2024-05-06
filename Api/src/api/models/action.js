@@ -1,10 +1,21 @@
 const mongoose = require('mongoose');
 
+const detalleInvalidacionSchema = new mongoose.Schema({
+  palabraIntentada: {
+    type: String,
+    required: true
+  },
+  razon: {
+    type: String,
+    required: true
+  }
+});
+
 const actionSchema = new mongoose.Schema({
   tipoAccion: {
     type: String,
     required: true,
-    enum: ['jugador_unido', 'partida_creada', 'palabra_guardada', 'palabra_inexistente']
+    enum: ['jugador_unido', 'partida_creada', 'palabra_guardada', 'palabra_invalida']
   },
   nickname: String, // Opcional, dependiendo de la acción
   uuidJugador: {
@@ -26,9 +37,9 @@ const actionSchema = new mongoose.Schema({
   palabraPuntuacion: { // Este subdocumento es opcional, sólo para 'palabra_guardada'
     palabra: String,
     puntuacion: Number
-  }
-}, 
-);
+  },
+  detalleInvalidacion: detalleInvalidacionSchema // Este subdocumento es opcional, sólo para 'palabra_invalida'
+});
 
 const Action = mongoose.model('Action', actionSchema);
 
